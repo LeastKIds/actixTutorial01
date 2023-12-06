@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use config::{ConfigError, Config, Environment};
 
 // 역직렬화(Deserialize): 직렬화와는 반대로 데이터를 객체로 변환해 줌
@@ -10,7 +10,8 @@ pub struct ServerConfig {
 }
 #[derive(Deserialize)]
 pub struct ConfigSetting {
-    pub server: ServerConfig
+    pub server: ServerConfig,
+    pub pg: deadpool_postgres::Config
 }
 
 // 여기서 impl은 위의 구조체 configsetting이 가지고 있는 기능을 나타냄

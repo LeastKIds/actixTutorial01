@@ -9,3 +9,23 @@ services:
       - "8080:8080"
     container_name: axtixWebTutorial
     command: sleep infinity
+    networks:
+      - our_net
+
+  postgres:
+    image: postgres:16.1-alpine3.18
+    volumes:
+      - ./DB/postgres:/var/lib/postgresql
+      - ./DB/sql:/sql
+    environment:
+      POSTGRES_PASSWORD: actix
+      POSTGRES_USER: actix
+      POSTGRES_DB: actix
+    restart: always
+    networks:
+      - our_net
+    container_name: postgresAxtixWebTutorial
+
+networks:
+  our_net:
+    driver: bridge

@@ -1,4 +1,5 @@
-use serde_derive::Serialize;
+use serde::{Serialize, Deserialize};
+use tokio_pg_mapper_derive::PostgresMapper;
 
 // attribute
 // 보통 그 아래에 있는 함수를 attribute의 설정에 맞춰 구현을 자동 생성해 줌
@@ -10,4 +11,25 @@ use serde_derive::Serialize;
 #[derive(Serialize)]
 pub struct Status {
     pub status: String
+}
+
+// Serialize, Deserialize가 모두 선언되어 있는 이유는
+// 데이터베이스이기 때문에 json -> object, object -> json
+// 으로 바뀌는 경우가 모두 있기 때문이다.
+// PostgresMapper를 사용하기 위해서는 
+// #[pg_mapper(table="todo_list")] 와 같이 테이블 설정을 해 줘야만 한다.
+#[derive(Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table="todo_list")]
+pub struct TodoList {
+    pub id: i32,
+    pub title: String
+}
+
+#[derive(Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table="todo_item")]
+pub struct TodoItem {
+    pub id: i32,
+    pub title: String,
+    pub checked: bool,
+    pub list_id: i32
 }
