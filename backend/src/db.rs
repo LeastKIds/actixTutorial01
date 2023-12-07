@@ -37,3 +37,18 @@ pub async fn get_itmes(client: &Client, list_id: i32) -> Result<Vec<TodoItem>, i
 
     Ok(itmes)
 }
+
+pub async fn create_todo(client: &Client, title: String) -> Result<TodoList, io::Error> {
+    let statement = client.prepare("insert into todo_list (title) values ($1) returning id, title").await.unwrap();
+
+    client.query(&statement, &[&title])
+        .await
+        .expect("Error creating todo list")
+        .iter()
+        // 위의 값을 보면 하나의 값만을 반환한다. 하지만 아래에서는 map과 collection으로 억지로 배열로 만든다.
+        // 그 이유는 client.query는 무조건 vec 형태로 반환하기 때문
+        .map(|row| TodoList::from_row_ref(row).unwrap())
+        .collect::<Vec<TodoList>>()
+        .pop()
+        .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating todo list"))
+}

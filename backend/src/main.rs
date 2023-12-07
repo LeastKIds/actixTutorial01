@@ -56,6 +56,7 @@ async fn main() -> io::Result<()>{
             // get_todos의 경우 db_pool: web::Data<Pool>의 파라미터가 필요하지만
             // actix의 경우 app_data안에 있는 값에서 찾아서 자동으로 넣어줌
             .route("/todos{_:/?}", web::get().to(get_todos))
+            .route("/todos{_:/?}", web::post().to(create_todo))
             .route("/todos/{list_id}/items{_:/?}", web::get().to(get_itmes))
 
     })

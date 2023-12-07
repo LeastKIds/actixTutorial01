@@ -1,4 +1,4 @@
-use crate::models::Status;
+use crate::models::{Status, CreateTodoList};
 use crate::db;
 use deadpool_postgres::{Pool, Client};
 use actix_web::{Responder, HttpResponse, web};
@@ -33,6 +33,20 @@ pub async fn get_itmes(db_pool: web::Data<Pool>, path: web::Path<(i32,)>) -> imp
 
     match result {
         Ok(itmes) => HttpResponse::Ok().json(itmes),
+        Err(_) => HttpResponse::InternalServerError().into()
+    }
+}
+
+// CreateTodoList에 #[derive(Serialize, Deserialize)]가 설정되어 있고, web::json으로 가져온다면
+// 자동으로 clone 기능 같은것이 따라오는것 같다.
+pub async fn create_todo(db_pool: web::Data<Pool>, json: web::Json<CreateTodoList>) -> impl Responder {
+
+    let client: Client = db_pool.get().await.expect("Error connecting to the database");
+
+    let result = db::create_todo(&client, json.title.clone()).await;
+
+    match result {
+        Ok(todo) => HttpResponse::Ok().json(todo),
         Err(_) => HttpResponse::InternalServerError().into()
     }
 }
