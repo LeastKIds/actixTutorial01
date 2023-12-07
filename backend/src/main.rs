@@ -2,6 +2,7 @@ mod config;
 mod models; // 해당 파일을 사용
 mod handlers;
 mod db;
+mod errors;
 // mod의 경우 최상위에서 한 번 사용하면,
 // 하위 파일에서는 굳이 mod로 불러올 필요 없이
 // use crate로 가져와서 쓰면 된다.

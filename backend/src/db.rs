@@ -1,13 +1,17 @@
 use crate::models::{TodoList, TodoItem};
+use crate::errors::{AppError, AppErrorType};
 use deadpool_postgres::Client;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use std::io;
 
-pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, io::Error> {
+pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, AppError> {
     // await를 써야하는지 아닌지는 타입을 체크해 보거나 직접 경험을 해 보는 수 밖에 없다.
     // statment: sql query를 준비하는데 사용하는 변수.
     // query를 최적화 시켜 주고 문제는 없는지 체크한다.
-    let statement = client.prepare("select * from todo_list order by id desc limit 10").await.unwrap();
+    let statement = client.prepare("select * from todo_list order by id desc limit 10")
+        .await
+        // .map_err(|err| AppError{message: None, cause: Some(err.to_string()), error_type: AppErrorType::DbError})?;
+        .map_err(AppError::db_error)?;
 
 
     let todos = client.query(&statement, &[])
@@ -24,9 +28,12 @@ pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, io::Error> {
     Ok(todos)
 }
 
-pub async fn get_itmes(client: &Client, list_id: i32) -> Result<Vec<TodoItem>, io::Error> {
+pub async fn get_itmes(client: &Client, list_id: i32) -> Result<Vec<TodoItem>, AppError> {
 
-    let statement = client.prepare("select * from todo_item where list_id = $1 order by id").await.unwrap();
+    let statement = client.prepare("select * from todo_item where list_id = $1 order by id")
+        .await
+        // .map_err(|err| AppError{message: None, cause: Some(err.to_string()), error_type: AppErrorType::DbError})?;
+        .map_err(AppError::db_error)?;
 
     let itmes = client.query(&statement, &[&list_id])
                                         .await
@@ -38,8 +45,12 @@ pub async fn get_itmes(client: &Client, list_id: i32) -> Result<Vec<TodoItem>, i
     Ok(itmes)
 }
 
-pub async fn create_todo(client: &Client, title: String) -> Result<TodoList, io::Error> {
-    let statement = client.prepare("insert into todo_list (title) values ($1) returning id, title").await.unwrap();
+pub async fn create_todo(client: &Client, title: String) -> Result<TodoList, AppError> {
+    let statement = client.prepare("insert into todo_list (title) values ($1) returning id, title")
+        .await
+        // .map_err(|err| AppError{message: None, cause: Some(err.to_string()), error_type: AppErrorType::DbError})?;
+        .map_err(AppError::db_error)?;
+
 
     client.query(&statement, &[&title])
         .await
@@ -50,13 +61,19 @@ pub async fn create_todo(client: &Client, title: String) -> Result<TodoList, io:
         .map(|row| TodoList::from_row_ref(row).unwrap())
         .collect::<Vec<TodoList>>()
         .pop()
-        .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating todo list"))
+        .ok_or(AppError {
+            message: Some("Error creating TODO list".to_string()),
+            cause: Some("Unknown error".to_string()),
+            error_type: AppErrorType::DbError
+        })
 }
 
-pub async fn check_item(cleint: &Client, list_id: i32, item_id: i32) -> Result<(), io::Error> {
+pub async fn check_item(cleint: &Client, list_id: i32, item_id: i32) -> Result<bool, AppError> {
 
     // set chcked = true 라는 소리는 checked 항목을 true로 바꾸겠다는 소리
-    let statement = cleint.prepare("update todo_item set checked = true where list_id = $1 and id = $2 and checked = false").await.unwrap();
+    let statement = cleint.prepare("update todo_item set checked = true where list_id = $1 and id = $2 and checked = false")
+        .await
+        .map_err(AppError::db_error)?;
 
     // 결과물은 업데이트 된 todo의 수
     // 1개가 없데이터 되었다면 결과 값은 1
@@ -72,7 +89,8 @@ pub async fn check_item(cleint: &Client, list_id: i32, item_id: i32) -> Result<(
         // 그렇게 되면 result는 match 안에서는 사용할 수 있으나, 더이상 check_item에서는 사용할 수 없게 된다.
         // 그렇기에 result의 값만 가져와 새로운 변수에 저장하기 위해서는
         // 우선 참조를 한 뒤, 역 참조를 해 그 값만 가져올 수 밖에 없다.
-        ref updated if *updated == 1 => Ok(()),
-        _ => Err(io::Error::new(io::ErrorKind::Other, "Failed to check list"))
+        ref updated if *updated == 1 => Ok(true),
+        // _ => Err(io::Error::new(io::ErrorKind::Other, "Failed to check list"))
+        _ => Ok(false)
     }
 }
