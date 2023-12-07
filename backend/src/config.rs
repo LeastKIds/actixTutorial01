@@ -1,5 +1,13 @@
+use deadpool_postgres::Pool;
 use serde::Deserialize;
 use config::{ConfigError, Config, Environment};
+use slog::Logger;
+
+pub struct AppState {
+    pub pool: Pool,
+    pub log: Logger
+}
+
 
 // 역직렬화(Deserialize): 직렬화와는 반대로 데이터를 객체로 변환해 줌
 // ex) json 형식을 java의 object형식으로 바꾸어 줌

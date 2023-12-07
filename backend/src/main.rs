@@ -8,11 +8,23 @@ mod errors;
 // use crate로 가져와서 쓰면 된다.
 
 use actix_web::{HttpServer, App, web::{self, Data}};
+use slog::{Logger, Drain, o, info};
 use std::io;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
 use deadpool_postgres::{Runtime};
-use crate::handlers::*; // 그렇게 정의된 모듈, 타입, 함수 등을 현재 범위로 가져와 사용가능하게 함
+use crate::{handlers::*, config::AppState}; // 그렇게 정의된 모듈, 타입, 함수 등을 현재 범위로 가져와 사용가능하게 함
+
+
+// log 설정.
+// 그렇게 중요하진 않고 그냥 이대로 쓰면 될듯
+fn configure_log() -> Logger {
+    let decorator = slog_term::TermDecorator::new().build();
+    let console_drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let console_drain = slog_async::Async::new(console_drain).build().fuse();
+    slog::Logger::root(console_drain, o!("v" => env!("CARGO_PKG_VERSION")))
+}
+
 
 
 // actix_rt는 비동기 프로그래밍을 위한 라이브러리
@@ -31,7 +43,10 @@ async fn main() -> io::Result<()>{
     // postgres 데이터베이스 설정 파일로 부터 해당 데이터베이스 컨트롤러를 가져오기
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
-    println!("Starting server at http://{}:{}/", config.server.host, config.server.port);
+    // 최상위 파일에서 log 설정
+    let log = configure_log();
+
+    info!(log, "Starting server at http://{}:{}/", config.server.host, config.server.port);
 
     // ::는 모듈 접근. 다른 언어서는 보통 .으로 표현. 예를 들어 std::io의 경우,
     // 다른 언어에서는 std.io로 표현하는 경우가 많음
@@ -51,7 +66,12 @@ async fn main() -> io::Result<()>{
             // 데이터베이스 연결 풀을 초기화 시켜, 모든 요청에서 데이터베이스를 사용할 수 있게 설정
             // 이렇게 설정된 데이터베이스 연결 풀은 
             // 각각의 요청에 독립적으로 접근할 수 있게 해줌
-            .app_data(Data::new(pool.clone()))
+            // .app_data(Data::new(pool.clone()))
+            // logger까지 모든 라우터에서 사용할 수 있도록 설정
+            .app_data(AppState {
+                pool: pool.clone(),
+                log: log.clone()
+            })
             .route("/", web::get().to(status))
             // {_:/?} 는 맨 마지막에 / 뒤에 오는 값들은 무시를 하겠다
             // get_todos의 경우 db_pool: web::Data<Pool>의 파라미터가 필요하지만
