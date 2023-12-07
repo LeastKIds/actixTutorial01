@@ -7,7 +7,7 @@ pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, io::Error> {
     // await를 써야하는지 아닌지는 타입을 체크해 보거나 직접 경험을 해 보는 수 밖에 없다.
     // statment: sql query를 준비하는데 사용하는 변수.
     // query를 최적화 시켜 주고 문제는 없는지 체크한다.
-    let statement = client.prepare("select * from todo_list order by id desc").await.unwrap();
+    let statement = client.prepare("select * from todo_list order by id desc limit 10").await.unwrap();
 
 
     let todos = client.query(&statement, &[])

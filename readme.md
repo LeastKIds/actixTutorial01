@@ -23,3 +23,18 @@ HttpServer::new(|| {
 - 위의 부분중 bind의 부분이 문제.
 - 원래는 127.0.0.1:8080을 사용했지만, 이렇게 하면 내부에서만 접근 가능
 - 나는 외부에서도 접근이 가능해야 했기 때문에 0.0.0.0:8080으로 변경하여 해결
+
+## 부하 테스트 하기
+```bash
+sudo apt install apache2-utils
+
+ab -n 100000 -k -c 30 -q http://localhost:8080/
+
+ab -p ./backend/todo.json -T application/json -n 100000 -k -c 30 -q http://localhost:8080/todos
+```
+- -n: 몇 번 반복을 하겠다.
+- -k: HTTP KeepAlive 기능 사용. TCP연결을 사용하여 여러번의 HTTP 요청을 보낼 수 있음
+- -c: 동시에 요청을 보내는 횟수
+- -q: 진행 상황은 출력하지 않음
+- -p: post로 어떤 파일을 보내겠다
+- -T: Content-Type을 지정하겠다
