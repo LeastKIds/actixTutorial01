@@ -52,3 +52,27 @@ pub async fn create_todo(client: &Client, title: String) -> Result<TodoList, io:
         .pop()
         .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating todo list"))
 }
+
+pub async fn check_item(cleint: &Client, list_id: i32, item_id: i32) -> Result<(), io::Error> {
+
+    // set chcked = true 라는 소리는 checked 항목을 true로 바꾸겠다는 소리
+    let statement = cleint.prepare("update todo_item set checked = true where list_id = $1 and id = $2 and checked = false").await.unwrap();
+
+    // 결과물은 업데이트 된 todo의 수
+    // 1개가 없데이터 되었다면 결과 값은 1
+    let result = cleint.execute(&statement, &[&list_id, &item_id])
+                                                        .await
+                                                        .expect("Error checking todo item");
+
+    match result {
+        // ref는 참조를 발생. 즉 result의 값을 updated에 참조 시키는 것
+        // * 는 역참조를 뜻함. 즉 *updated는 updated의 실제 값을 가져오는 것
+        // 언뜻 보기에는 참조를 한 뒤, 역참조를 하는것 처럼 보여, 의미 없는 작업처럼 보일 수 있으나
+        // result의 값을 그대로 사용할 시, result의 소유권이 check_item이 아니라 match쪽으로 넘어간다.
+        // 그렇게 되면 result는 match 안에서는 사용할 수 있으나, 더이상 check_item에서는 사용할 수 없게 된다.
+        // 그렇기에 result의 값만 가져와 새로운 변수에 저장하기 위해서는
+        // 우선 참조를 한 뒤, 역 참조를 해 그 값만 가져올 수 밖에 없다.
+        ref updated if *updated == 1 => Ok(()),
+        _ => Err(io::Error::new(io::ErrorKind::Other, "Failed to check list"))
+    }
+}

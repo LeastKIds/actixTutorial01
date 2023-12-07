@@ -58,6 +58,7 @@ async fn main() -> io::Result<()>{
             .route("/todos{_:/?}", web::get().to(get_todos))
             .route("/todos{_:/?}", web::post().to(create_todo))
             .route("/todos/{list_id}/items{_:/?}", web::get().to(get_itmes))
+            .route("/todos/{list_id}/items/{item_id}{_:/?}", web::put().to(check_itme))
 
     })
     // 만약 bind에 성공하면 그대로 넘어가고 아니면 error 발생
